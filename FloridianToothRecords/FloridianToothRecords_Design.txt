@@ -1,0 +1,408 @@
+FLORIDIAN TOOTH RECORDS (DENTAL RECORDS) - DESIGN ALGORITHM
+CSC 120 - Computer Programming I, Project 1
+Author: Maxime Manuel Afonso
+Program: FloridianToothRecords.java (class FloridianToothRecords)
+
+The design has one module per box of the structure chart, and each module is one static
+method of FloridianToothRecords.java with the same name; main is the main method. Each module
+heading gives the method name, what it receives (its parameters), what it returns, its local
+variables and how it uses the two arrays. A module used by a step is named in square brackets
+at the end of that step.
+
+=============================================================================================
+DATA STRUCTURES
+=============================================================================================
+familyMemberNames   String[] familyMemberNames - an array of strings with one element per
+                    family member: familyMemberNames[familyMember] is the name of family
+                    member number (familyMember + 1).
+                    (The specification requires the names to be recorded in an array of
+                    strings.)
+
+teeth               char[][][] teeth - a three dimensional array of characters,
+                    teeth[familyMember][layer][tooth]
+                    (The specification requires the teeth to be recorded in a three
+                    dimensional array of characters: one plane per person, two rows per
+                    plane, one column per tooth.)
+                    - plane  (first index, familyMember) = one family member, same index as
+                      in familyMemberNames, so familyMemberNames[familyMember] and
+                      teeth[familyMember] describe the same person
+                    - row    (second index, layer) = one layer of teeth:
+                      row ROW_INDEX_UPPERS (0) and row ROW_INDEX_LOWERS (1)
+                    - column (third index, tooth) = one tooth; column 0 holds tooth number 1
+                    Each row is created with exactly as many columns as that member has
+                    teeth in that layer (1 to MAXIMUM_NUMBER_OF_TEETH_PER_LAYER), so rows
+                    can have different lengths (a ragged array); e.g. the uppers "BMIIBBM"
+                    become the row {'B','M','I','I','B','B','M'} of 7 columns.
+                    A tooth is stored as an upper case character: INCISOR 'I',
+                    BICUSPID 'B', MISSING 'M'.
+
+Where the two arrays are created and used (repeated under "Arrays:" at the head of each module):
+
+  Module (method)           familyMemberNames                teeth
+  ------------------------  -------------------------------  ----------------------------------
+  main                      CREATED (1 element per person)   CREATED (planes, 2 rows per plane)
+  displayWelcomeMessage     not used                         not used
+  getNumberOfFamilyMembers  not used (result sizes both)     not used (result sizes both)
+  getFamilyMembersRecords   FILLED (one name per member)     FILLED (one row per member/layer)
+  getFamilyMemberName       not used                         not used
+  getTeethLayer             not used                         one ROW CREATED and returned
+  checkTeethTypes           not used                         not used
+  getMenuOption             not used                         not used
+  processMenuOptions        passed on, not changed           passed on, not changed
+  printFamilyRecords        READ (every name)                READ (every row)
+  printTeethLayer           not used                         one row READ
+  extractTooth              READ (via getFamilyMemberIndex)  CHANGED (one tooth becomes MISSING)
+  getFamilyMemberIndex      READ (searched)                  not used
+  getToothLayer             not used                         not used
+  getToothNumber            not used                         one row READ
+  reportRootCanals          not used                         READ (via countTeethType)
+  countTeethType            not used                         READ (every tooth)
+  displayExitMessage        not used                         not used
+
+=============================================================================================
+CONSTANTS  (private static final, declared at the top of the class)
+=============================================================================================
+MAXIMUM_NUMBER_OF_FAMILY_MEMBERS  = 6         maximum number of people in the family
+MAXIMUM_NUMBER_OF_TEETH_PER_LAYER = 8         maximum number of teeth in one layer
+NUMBER_OF_LAYERS                  = 2         uppers and lowers
+ROW_INDEX_UPPERS                  = 0         row index of the upper teeth
+ROW_INDEX_LOWERS                  = 1         row index of the lower teeth
+INCISOR                           = 'I'       tooth types
+BICUSPID                          = 'B'
+MISSING                           = 'M'
+PRINT_OPTION                      = 'P'       menu options
+EXTRACT_OPTION                    = 'E'
+ROOT_OPTION                       = 'R'
+EXIT_OPTION                       = 'X'
+UPPER_OPTION                      = 'U'       layer options for an extraction
+LOWER_OPTION                      = 'L'
+UPPERS_LABEL                      = "uppers"  layer labels used in the prompts of getTeethLayer
+LOWERS_LABEL                      = "lowers"
+UPPERS_HEADING                    = "Uppers:" layer headings printed by printTeethLayer
+LOWERS_HEADING                    = "Lowers:"
+NOT_FOUND                         = -1        familyMemberIndex meaning "no member has that name"
+                                              (never a real index, those are 0 to length - 1)
+PROMPT_WIDTH                      = 44        width of the field in which every prompt is shown
+PROMPT_FORMAT                     = "%-" + PROMPT_WIDTH + "s: "
+                                              printf format of every prompt, built from
+                                              PROMPT_WIDTH (so it is "%-44s: "): the text
+                                              left justified in the field, then ": "
+
+=============================================================================================
+CONVENTIONS
+=============================================================================================
+- "Prompt <text>" means System.out.printf(PROMPT_FORMAT, <text>): <text> left justified in a
+  field of PROMPT_WIDTH characters followed by ": ", with the cursor left on that line so the
+  user's input appears after it.
+- Text input is read with keyboard.next(), a single word, so it is never empty. A letter is
+  converted to upper case with Character.toUpperCase (a string with toUpperCase()) before it
+  is checked, so upper and lower case input are both accepted.
+- Numeric input is read with keyboard.nextInt() and is assumed to be syntactically correct
+  (allowed by the specification).
+- keyboard, the Scanner reading System.in, is created once in main and passed as the first
+  parameter to every method that reads input or calls a method that does (no global
+  variables). It is listed under "Receives" below but not drawn on the structure chart.
+
+=============================================================================================
+main  -  Floridian Tooth Records
+Receives: args (not used)               Returns: nothing
+Locals:   numberOfFamilyMembers, familyMemberNames, teeth, keyboard
+Arrays:   familyMemberNames - CREATED: new String[numberOfFamilyMembers] (step 2.2)
+          teeth - CREATED: new char[numberOfFamilyMembers][NUMBER_OF_LAYERS][] (step 2.2),
+                  i.e. the planes and the two rows; the columns of each row are created later
+                  in getTeethLayer
+=============================================================================================
+0. keyboard = new Scanner(System.in)
+1. Display the welcome message                                      [displayWelcomeMessage]
+2. Get the family data
+    2.1 numberOfFamilyMembers = the number of people in the family  [getNumberOfFamilyMembers]
+    2.2 familyMemberNames = new String[numberOfFamilyMembers]
+        teeth = new char[numberOfFamilyMembers][NUMBER_OF_LAYERS][]
+    2.3 Get the members' names and teeth into familyMemberNames and teeth
+                                                                     [getFamilyMembersRecords]
+3. Process the menu options until the user chooses to exit         [processMenuOptions]
+4. Display the exit message                                         [displayExitMessage]
+
+=============================================================================================
+displayWelcomeMessage  -  Display welcome message
+Receives: nothing                       Returns: nothing
+Arrays:   familyMemberNames - not used  teeth - not used
+=============================================================================================
+1. Display "Welcome to the Floridian Tooth Records"
+2. Display "--------------------------------------" (38 dashes, the length of the title)
+
+=============================================================================================
+getNumberOfFamilyMembers  -  Get number of people
+Receives: keyboard                      Returns: numberOfFamilyMembers
+                                                 (1 to MAXIMUM_NUMBER_OF_FAMILY_MEMBERS)
+Locals:   numberOfFamilyMembers
+Arrays:   familyMemberNames - not used  teeth - not used  (the number returned sizes both)
+=============================================================================================
+1. Prompt "Please enter number of people in the family"
+2. numberOfFamilyMembers = keyboard.nextInt()
+3. While numberOfFamilyMembers < 1 or numberOfFamilyMembers > MAXIMUM_NUMBER_OF_FAMILY_MEMBERS
+    3.1 Prompt "Invalid number of people, try again"
+    3.2 numberOfFamilyMembers = keyboard.nextInt()
+4. Return numberOfFamilyMembers
+
+=============================================================================================
+getFamilyMembersRecords  -  Get family members
+Receives: keyboard, familyMemberNames, teeth (both arrays empty)
+Returns:  nothing (familyMemberNames and teeth are filled in)
+Locals:   familyMember
+Arrays:   familyMemberNames - FILLED: each name is stored in familyMemberNames[familyMember]
+                              (step 1.1)
+          teeth - FILLED: the row returned by getTeethLayer is stored in
+                  teeth[familyMember][ROW_INDEX_UPPERS] and teeth[familyMember][ROW_INDEX_LOWERS]
+                  (steps 1.2, 1.3); nothing is created here
+=============================================================================================
+1. For familyMember = 0 to familyMemberNames.length - 1 (familyMember is the array index,
+   the member number shown to the user is familyMember + 1)
+    1.1 familyMemberNames[familyMember] = the member's name          [getFamilyMemberName]
+    1.2 teeth[familyMember][ROW_INDEX_UPPERS] = the member's uppers, read with the label
+        UPPERS_LABEL                                                 [getTeethLayer]
+    1.3 teeth[familyMember][ROW_INDEX_LOWERS] = the member's lowers, read with the label
+        LOWERS_LABEL                                                 [getTeethLayer]
+
+=============================================================================================
+getFamilyMemberName  -  Get name
+Receives: keyboard, familyMemberNumber  Returns: familyMemberName
+Locals:   familyMemberName
+Arrays:   familyMemberNames - not used (the name returned is stored by getFamilyMembersRecords)
+          teeth - not used
+=============================================================================================
+1. Prompt "Please enter the name for family member " + familyMemberNumber
+2. familyMemberName = keyboard.next()
+3. Return familyMemberName
+
+=============================================================================================
+getTeethLayer  -  Get teeth layer
+Receives: keyboard, familyMemberName, teethLayer (the layer label: UPPERS_LABEL or LOWERS_LABEL)
+Returns:  teethRow, a char[] with one column per tooth
+Locals:   teethTyped, teethRow, toothIndex
+Arrays:   familyMemberNames - not used
+          teeth - one ROW CREATED: teethRow, a new char[] with one column per tooth (step 5),
+                  filled and returned; the array teeth itself is not accessed here
+=============================================================================================
+1. Prompt "Please enter the " + teethLayer + " for " + familyMemberName
+2. teethTyped = keyboard.next()
+3. While teethTyped.length() > MAXIMUM_NUMBER_OF_TEETH_PER_LAYER or checkTeethTypes(teethTyped)
+   is false                                                            [checkTeethTypes]
+    3.1 If teethTyped.length() > MAXIMUM_NUMBER_OF_TEETH_PER_LAYER then
+            prompt "Too many teeth, try again"
+        else
+            prompt "Invalid teeth types, try again"
+    3.2 teethTyped = keyboard.next()
+4. teethTyped = teethTyped converted to upper case (the string is valid)
+5. teethRow = new char[teethTyped.length()] (exactly one column per tooth)
+6. For toothIndex = 0 to teethRow.length - 1
+    6.1 teethRow[toothIndex] = the character of teethTyped at toothIndex
+7. Return teethRow
+
+=============================================================================================
+checkTeethTypes  -  Check teeth types
+Receives: toothTypes (the string typed)  Returns: true if every character is a tooth type,
+                                                  false otherwise
+Locals:   upperCaseTypes, toothIndex
+Arrays:   familyMemberNames - not used  teeth - not used
+=============================================================================================
+1. upperCaseTypes = toothTypes converted to upper case
+2. For toothIndex = 0 to upperCaseTypes.length() - 1
+    2.1 Depending on the character of upperCaseTypes at toothIndex (switch):
+            INCISOR, BICUSPID or MISSING : it is a tooth type, go on to the next character
+            anything else                : return false
+3. Return true
+
+=============================================================================================
+getMenuOption  -  Get menu option
+Receives: keyboard                      Returns: optionLetter, an upper case character:
+                                                 PRINT_OPTION, EXTRACT_OPTION, ROOT_OPTION
+                                                 or EXIT_OPTION
+Locals:   menuOption, optionLetter
+Arrays:   familyMemberNames - not used  teeth - not used
+=============================================================================================
+1. Display a blank line
+2. Prompt "(P)rint, (E)xtract, (R)oot, e(X)it"
+3. menuOption = keyboard.next()
+   optionLetter = the first character of menuOption, converted to upper case
+4. While optionLetter is not PRINT_OPTION and not EXTRACT_OPTION and not ROOT_OPTION and not
+   EXIT_OPTION
+    4.1 Prompt "Invalid menu option, try again"
+    4.2 menuOption = keyboard.next()
+        optionLetter = the first character of menuOption, converted to upper case
+5. Return optionLetter
+
+=============================================================================================
+processMenuOptions  -  Process menu options
+Receives: keyboard, familyMemberNames, teeth
+Returns:  nothing (teeth may be changed by extractions)
+Locals:   optionLetter
+Arrays:   familyMemberNames - USED: passed on to printFamilyRecords and extractTooth; not
+                              changed here
+          teeth - USED: passed on to printFamilyRecords, extractTooth and reportRootCanals;
+                  not changed here (extractTooth changes it)
+=============================================================================================
+1. Repeat (do ... while)
+    1.1 optionLetter = the menu option                                 [getMenuOption]
+    1.2 Depending on optionLetter (switch):
+            PRINT_OPTION   : print the family record                   [printFamilyRecords]
+            EXTRACT_OPTION : extract a tooth                           [extractTooth]
+            ROOT_OPTION    : report the family's root canals           [reportRootCanals]
+            EXIT_OPTION    : nothing to do, the loop condition ends the menu
+   while optionLetter != EXIT_OPTION
+
+=============================================================================================
+printFamilyRecords  -  Print family record
+Receives: familyMemberNames, teeth      Returns: nothing
+Locals:   familyMember
+Arrays:   familyMemberNames - READ: every name is displayed (step 2.1); not changed
+          teeth - READ: every row is passed to printTeethLayer (steps 2.2, 2.3); not changed
+=============================================================================================
+1. Display a blank line
+2. For familyMember = 0 to familyMemberNames.length - 1
+    2.1 Display familyMemberNames[familyMember] on a line of its own
+    2.2 Print teeth[familyMember][ROW_INDEX_UPPERS] with the heading UPPERS_HEADING
+                                                                       [printTeethLayer]
+    2.3 Print teeth[familyMember][ROW_INDEX_LOWERS] with the heading LOWERS_HEADING
+                                                                       [printTeethLayer]
+
+=============================================================================================
+printTeethLayer  -  Print teeth layer
+Receives: layerHeading (UPPERS_HEADING or LOWERS_HEADING), teethRow      Returns: nothing
+Locals:   toothIndex, toothNumber
+Arrays:   familyMemberNames - not used
+          teeth - one row READ (teethRow, the row received); not changed
+=============================================================================================
+1. Display two spaces followed by layerHeading
+2. For toothIndex = 0 to teethRow.length - 1
+    2.1 toothNumber = toothIndex + 1 (teeth are numbered from 1, columns from 0)
+    2.2 Display two spaces, toothNumber, ":" and teethRow[toothIndex]
+3. End the line
+
+=============================================================================================
+extractTooth  -  Extract tooth
+Receives: keyboard, familyMemberNames, teeth
+Returns:  nothing (one tooth in teeth becomes MISSING)
+Locals:   familyMemberIndex, toothLayerIndex, toothNumber
+Arrays:   familyMemberNames - READ: passed to getFamilyMemberIndex to find the member (step 1);
+                              not changed
+          teeth - CHANGED: one tooth of one row is set to MISSING (step 4); that row is also
+                  passed to getToothNumber (step 3)
+=============================================================================================
+1. familyMemberIndex = the index of the member whose tooth is extracted
+                                                                       [getFamilyMemberIndex]
+2. toothLayerIndex = the row index of the layer, ROW_INDEX_UPPERS or ROW_INDEX_LOWERS
+                                                                       [getToothLayer]
+3. toothNumber = the number of an existing tooth in the row
+   teeth[familyMemberIndex][toothLayerIndex]                           [getToothNumber]
+4. teeth[familyMemberIndex][toothLayerIndex][toothNumber - 1] = MISSING
+
+=============================================================================================
+getFamilyMemberIndex  -  Get family member
+Receives: keyboard, familyMemberNames   Returns: familyMemberIndex, the index of the member in
+                                                 familyMemberNames (and of the plane in teeth)
+Locals:   familyMemberIndex, member, memberName
+Arrays:   familyMemberNames - READ: searched for the name typed (step 3.2); not changed
+          teeth - not used
+=============================================================================================
+1. familyMemberIndex = NOT_FOUND (no member found yet)
+2. Prompt "Which family member"
+3. While familyMemberIndex == NOT_FOUND
+    3.1 memberName = keyboard.next()
+    3.2 For member = 0 to familyMemberNames.length - 1
+        3.2.1 If familyMemberNames[member] equals memberName ignoring case then
+                  familyMemberIndex = member
+    3.3 If familyMemberIndex is still NOT_FOUND then
+            prompt "Invalid family member, try again"
+4. Return familyMemberIndex
+
+=============================================================================================
+getToothLayer  -  Get tooth layer
+Receives: keyboard                      Returns: the row index of the layer, ROW_INDEX_UPPERS
+                                                 or ROW_INDEX_LOWERS
+Locals:   toothLayer, layerLetter
+Arrays:   familyMemberNames - not used  teeth - not used
+=============================================================================================
+1. Prompt "Which tooth layer (U)pper or (L)ower"
+2. toothLayer = keyboard.next()
+   layerLetter = the first character of toothLayer, converted to upper case
+3. While layerLetter is not UPPER_OPTION and not LOWER_OPTION
+    3.1 Prompt "Invalid layer, try again"
+    3.2 toothLayer = keyboard.next()
+        layerLetter = the first character of toothLayer, converted to upper case
+4. If layerLetter == UPPER_OPTION then
+        return ROW_INDEX_UPPERS
+   else
+        return ROW_INDEX_LOWERS
+
+=============================================================================================
+getToothNumber  -  Get tooth number
+Receives: keyboard, teethRow            Returns: toothNumber (1 to teethRow.length) of a tooth
+                                                 that is not missing
+Locals:   toothNumber
+Arrays:   familyMemberNames - not used
+          teeth - one row READ: teethRow.length and teethRow[toothNumber - 1] (step 3);
+                  not changed
+=============================================================================================
+1. Prompt "Which tooth number"
+2. toothNumber = keyboard.nextInt()
+3. While toothNumber < 1, or toothNumber > teethRow.length, or teethRow[toothNumber - 1] is
+   MISSING (the range is tested first, so the row is only indexed with a valid number)
+    3.1 If toothNumber < 1 or toothNumber > teethRow.length then
+            prompt "Invalid tooth number, try again"
+        else
+            prompt "Missing tooth, try again"
+    3.2 toothNumber = keyboard.nextInt()
+4. Return toothNumber
+
+=============================================================================================
+reportRootCanals  -  Report root canals
+Receives: teeth                         Returns: nothing
+Locals:   incisorCount, bicuspidCount, missingCount, discriminant, firstRoot, secondRoot
+Arrays:   familyMemberNames - not used
+          teeth - READ: passed three times to countTeethType (step 1); not changed
+=============================================================================================
+1. Count the family's teeth of each type
+    1.1 incisorCount  = the number of INCISOR teeth in teeth              [countTeethType]
+    1.2 bicuspidCount = the number of BICUSPID teeth in teeth             [countTeethType]
+    1.3 missingCount  = the number of MISSING teeth in teeth              [countTeethType]
+2. Compute and display the root canal indices, the roots of I x^2 + B x - M = 0 with
+   I = incisorCount, B = bicuspidCount and M = missingCount
+    2.1 If incisorCount == 0 then (no incisors, so the equation is linear: B x - M = 0)
+            2.1.1 If bicuspidCount == 0 then
+                      display "No root canals for this family"
+                  else
+                      display "One root canal at " followed by missingCount / bicuspidCount
+                      (divided as doubles), right justified in 8 columns with 2 decimals
+        else
+            2.1.2 discriminant = bicuspidCount^2 + 4 * incisorCount * missingCount
+                  (never negative, because the counts are not negative, so both roots are real)
+            2.1.3 firstRoot  = (-bicuspidCount + square root of discriminant) / (2 * incisorCount)
+            2.1.4 secondRoot = (-bicuspidCount - square root of discriminant) / (2 * incisorCount)
+            2.1.5 Display "One root canal at " followed by firstRoot, then on the next line
+                  "Another root canal at " followed by secondRoot, each root right justified
+                  in 8 columns with 2 decimal places (printf "%8.2f")
+
+=============================================================================================
+countTeethType  -  Count teeth of type
+Receives: teeth, toothType (INCISOR, BICUSPID or MISSING)
+Returns:  numberOfTeethType, the number of teeth of that type in the family
+Locals:   familyMember, teethLayer, toothIndex, numberOfTeethType
+Arrays:   familyMemberNames - not used
+          teeth - READ: every tooth of every row of every plane (step 2); not changed
+=============================================================================================
+1. numberOfTeethType = 0
+2. For familyMember = 0 to teeth.length - 1
+    2.1 For teethLayer = 0 to teeth[familyMember].length - 1
+        2.1.1 For toothIndex = 0 to teeth[familyMember][teethLayer].length - 1
+                2.1.1.1 If teeth[familyMember][teethLayer][toothIndex] == toothType then
+                            add 1 to numberOfTeethType
+3. Return numberOfTeethType
+
+=============================================================================================
+displayExitMessage  -  Display exit message
+Receives: nothing                       Returns: nothing
+Arrays:   familyMemberNames - not used  teeth - not used
+=============================================================================================
+1. Display a blank line
+2. Display "Exiting the Floridian Tooth Records :-)"
