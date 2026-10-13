@@ -10,8 +10,8 @@ root canal indices (the roots of I·x² + B·x − M = 0).
 ## Contents
 - `FloridianToothRecords/src/FloridianToothRecords.java` – the program (Java, one class, static methods)
 - `FloridianToothRecords/javadoc/index.html` – generated JavaDoc pages
-- `design/FloridianToothRecords_StructureChart.jpg` – structure chart (top-down design)
-- `design/FloridianToothRecords_Design.txt` – design algorithm (one module per method)
+- `FloridianToothRecords/design/FloridianToothRecords_StructureChart.jpg` – structure chart (top-down design)
+- `FloridianToothRecords/design/FloridianToothRecords_Design.txt` – design algorithm (one module per method)
 
 ## Running
 Open the `FloridianToothRecords` folder in IntelliJ and run `FloridianToothRecords.main`,
